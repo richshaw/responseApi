@@ -1,0 +1,11 @@
+{
+    "require": {
+        "slim/slim": "2.*",
+        "aspose/php": "dev-master",
+        "vlucas/valitron": "1.*",
+        "entomb/slim-json-api": "dev-master"
+    },
+    "autoload": {
+        "psr-0": {"Response": "src/","Middleware": "src/"}
+    }
+}
