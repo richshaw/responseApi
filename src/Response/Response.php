@@ -27,6 +27,11 @@ class Response
      */
     protected $slide;
 
+     /**
+     * @var int
+     */
+    protected $participantSlide;
+
     /**
      * @var string
      */
@@ -35,11 +40,35 @@ class Response
     /**
      * @var string
      */
+    protected $sessionId;
+
+     /**
+     * @var timestamp
+     */
+    protected $created;
+
+    /**
+     * @var string
+     */
     protected $collection;
 
+    /**
+     * @var bool
+     */
+    protected $error;
+
+    /**
+     * @var mixed
+     */
+    protected $meta = array();
+
+
     public function __construct($expId) {
-        $this->expId = $expId;
-        $this->collection = $expId . '_response';
+        //Cast to string incase id gets passed as MongoId
+        $this->id = (string) new \MongoId();
+        $this->expId = (string) $expId;
+        $this->collection = (string) $expId . '_response';
+        $this->created = strtotime('now');
     }
 
     /**
@@ -97,6 +126,24 @@ class Response
     }
 
     /**
+     * Get session id
+     * @return string
+     */
+    public function getSessionId()
+    {
+        return $this->sessionId;
+    }
+
+    /**
+     * Set session id
+     * @param  string $sessionId
+     */
+    public function setSessionId($sessionId)
+    {
+        $this->sessionId = $sessionId;
+    }
+
+    /**
      * Get partcipant response
      * @return string
      */
@@ -133,6 +180,24 @@ class Response
     }
 
     /**
+     * Get the slide number the participant is actually seeing will == slide if not randomised
+     * @return int
+     */
+    public function getParticipantSlide()
+    {
+        return $this->participantSlide;
+    }
+
+    /**
+     * Set experiment slide
+     * @param  string $input
+     */
+    public function setParticipantSlide($slide)
+    {
+        $this->participantSlide = $slide;
+    }
+
+    /**
      * Get response time
      * @return float
      */
@@ -151,14 +216,68 @@ class Response
     }
 
     /**
+     * Get created date as UNIX time
+     * @return timetsamp
+     */
+    public function getCreated()
+    {
+        return $this->created;
+    }
+
+    /**
+     * Set created date as UNIX time
+     * @param  mixed $random
+     */
+    public function setCreated($created)
+    {
+        $this->created = $created;
+    }
+
+     /**
+     * Get if input response was an error
+     * @return error
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * Set if input response was an error
+     * @param  bool error
+     */
+    public function setError($error)
+    {
+        $this->error = $error;
+    }
+
+     /**
+     * Get meta data
+     * @return meta
+     */
+    public function getMeta()
+    {
+        return $this->meta;
+    }
+
+    /**
+     * Set response meta data
+     * @param  mixed meta
+     */
+    public function setMeta($meta)
+    {
+        $this->meta = $meta;
+    }
+
+    /**
      * Params we're going to use to create the response
      * @param  array $params
      */
     public function validate($params)
     {
         $v = new \Valitron\Validator($params);
-
-        $v->rule('required', ['expId','participantId','input','slide','time']);
+        //expId already guaranteed by routing and _construct
+        $v->rule('required', ['participantId','sessionId','input','slide','time','error']);
         $v->rule('integer', ['slide']);
 
         if($v->validate()) {
@@ -175,13 +294,7 @@ class Response
     */
     public function save(Database $db) {
         //Doc to save to DB
-        $doc = array(
-            'expId' => new \MongoId($this->expId),
-            'participantId' => $this->participantId,
-            'input' => $this->input,
-            'slide' => $this->slide,
-            'time' => $this->time
-        );
+        $doc = $this->toMongo();
 
         //Save new experiment
         $write = $db->insert($this->collection,$doc);
@@ -201,11 +314,49 @@ class Response
         $this->setId((string) $doc['_id']);
         $this->setExpId((string) $doc['expId']);
         $this->setParticipantId($doc['participantId']);
+        $this->setSessionId($doc['sessionId']);
         $this->setInput($doc['input']);
-        $this->setSlide($doc['slide']);
-        $this->setTime($doc['time']);
+        $this->setSlide((int) $doc['slide']);
+        $this->setParticipantSlide((int) $doc['participantSlide']);
+        $this->setTime((float) $doc['time']);
+        $this->setCreated($doc['created']->sec);
+        $this->setError((bool) $doc['error']);
+        $this->setMeta($doc['meta']);
 
         return true;
     }
 
+    /**
+    * Return response as array
+    */
+    public function toArray() {
+        return array(
+            'id' => $this->getId(),
+            'expId' => $this->getExpId(),
+            'participantId' => $this->getParticipantId(),
+            'sessionId' => $this->getSessionId(),
+            'input' => $this->getInput(),
+            'slide' => (int) $this->getSlide(),
+            'participantSlide' => (int) $this->getParticipantSlide(),
+            'time' => (float) $this->getTime(),
+            'created' => $this->getCreated(),
+            'error' => (bool) $this->getError(),
+            'meta' => $this->getMeta(),
+        );
+    }
+
+    /**
+    * Return as Mongo Doc ready for insert or update
+    */
+    public function toMongo() {
+        //Get object as array
+        $mongoDoc = $this->toArray();
+        //Replace primitive types with MongoObjects where appropiate
+        $mongoDoc['_id'] = new \MongoId($this->id);
+        unset($mongoDoc['id']);
+        $mongoDoc['expId'] = new \MongoId($this->getExpId());
+        $mongoDoc['created'] = new \MongoDate($this->getCreated());
+
+        return $mongoDoc;
+    }
 }

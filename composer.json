@@ -6,6 +6,6 @@
         "entomb/slim-json-api": "dev-master"
     },
     "autoload": {
-        "psr-0": {"Response": "src/","Middleware": "src/"}
+        "psr-0": {"Response": "src/","Middleware": "src/","View": "src/"}
     }
 }

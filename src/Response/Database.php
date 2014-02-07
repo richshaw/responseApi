@@ -57,13 +57,32 @@ class Database
 
     public function insert($collection, $document)
     {
-        $this->db->$collection->insert($document,array('w' => 1));
+        if(!isset($document['created']))
+        {
+            //Add timestamp if not given
+            $document['created'] = new \MongoDate(strtotime('now'));
+        }
+        else
+        {
+            //Make MongoObject
+            $document['created'] = new \MongoDate($document['created']);
+        }
+
+        $this->db->$collection->insert($document);
         return $document;
     }
 
+    public function batchInsert($collection, $documents)
+    {
+        $this->db->$collection->batchInsert($documents);
+        return $documents;
+    }
+
+
     public function update($collection, $id, $document)
     {
-        $this->db->$collection->update(array('_id' => new \MongoId($id)),$document,array('w' => 1));
+        $update = array('$set' => $document);
+        $this->db->$collection->update(array('_id' => new \MongoId($id)),$update,array('w' => 1));
         return $document;
     }
 
@@ -80,6 +99,11 @@ class Database
     public function remove($collection, $id)
     {
         return $this->db->$collection->remove(array('_id' => new \MongoId($id)));
+    }
+
+    public function removeAll($collection)
+    {
+        return $this->db->$collection->remove();
     }
 
     public function createCollection($collection)

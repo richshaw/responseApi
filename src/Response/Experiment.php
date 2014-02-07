@@ -33,9 +33,30 @@ class Experiment
     protected $input;
 
     /**
+     * @var bool
+     */
+    protected $error;
+
+    /**
      * @var string
      */
     protected $collection = 'experiment';
+
+    /**
+     * @var timestamp
+     */
+    protected $created;
+
+    /**
+     * @var int
+     */
+    protected $meta;
+
+
+    /**
+     * @var array
+     */
+    protected $rules = array();
 
     /**
      * Get experiment id
@@ -110,7 +131,7 @@ class Experiment
     }
 
     /**
-     * Get list of valid input keys
+     * Get comma separated list of valid input keys
      * @return mixed
      */
     public function getInput()
@@ -119,12 +140,87 @@ class Experiment
     }
 
     /**
-     * Set list of slides to randomise
+     * Set comma separated list of slides to randomise
      * @param  mixed $random
      */
     public function setInput($input)
     {
         $this->input = $input;
+    }
+
+    /**
+     * Get if experiment should halt on input error
+     * @return bool
+     */
+    public function getError()
+    {
+        return $this->error;
+    }
+
+    /**
+     * Set if experiment should halt on input error
+     * @param  bool $error
+     */
+    public function setError($error)
+    {
+        $this->error = (bool) $error;
+    }
+
+
+    /**
+     * Get created date as UNIX time
+     * @return timetsamp
+     */
+    public function getCreated()
+    {
+        return $this->created;
+    }
+
+    /**
+     * Set created date as UNIX time
+     * @param  mixed $random
+     */
+    public function setCreated($created)
+    {
+        $this->created = $created;
+    }
+
+
+    /**
+     * Get where to retrive meta data from url, data attribute etc
+     * @return meta
+     */
+    public function getMeta()
+    {
+        return $this->meta;
+    }
+
+    /**
+     * Set where to retrieve meta data from
+     * @param  int $meta
+     */
+    public function setMeta($meta)
+    {
+        $this->meta = $meta;
+    }
+
+
+     /**
+     * Rules for experiment
+     * @return array
+     */
+    public function getRules()
+    {
+        return $this->rules;
+    }
+
+    /**
+     * Set array of rule obejects
+     * @param  array $meta
+     */
+    public function setRules($rules)
+    {
+        $this->rules = $rules;
     }
 
     /**
@@ -182,9 +278,16 @@ class Experiment
             return true;
         }, 'input responses are aren\'t alphanumeric');
 
-        $v->rule('required', ['title', 'body', 'input']);
-        $v->rule('isRandom',['random']);
-        $v->rule('isInput',['input']);
+        $v::addRule('isBool', function($field, $value, array $params) {
+            $value = (bool) $value;
+            return is_bool($value);
+        }, '{field} must be boolean');
+
+        $v->rule('required', array('title', 'body', 'input', 'error','meta'));
+        $v->rule('isRandom',array('random'));
+        $v->rule('isInput',array('input'));
+        $v->rule('isBool',array('error'));
+        $v->rule('numeric',array('meta'));
 
         if($v->validate()) {
             return true;
@@ -201,12 +304,7 @@ class Experiment
     */
     public function save(Database $db) {
         //Doc to save to DB
-        $doc = array(
-            'title' => $this->title,
-            'body' => $this->body,
-            'input' => $this->input,
-            'random' => $this->random
-        );
+        $doc = $this->toMongo();
 
         if(!isset($this->id)) {
             //Save new experiment
@@ -235,7 +333,18 @@ class Experiment
         $this->setTitle($doc['title']);
         $this->setBody($doc['body']);
         $this->setInput($doc['input']);
+        $this->setError($doc['error']);
         $this->setRandom($doc['random']);
+        $this->setCreated($doc['created']->sec);
+        $this->setMeta($doc['meta']);
+
+        $rules = array();
+        foreach ($doc['rules'] as $rule) {
+            $ruleClass = '\Rule\\' . $rule['type'] . 'Rule';
+            $rules[] = new $ruleClass($rule);
+        }
+
+        $this->setRules($rules);
 
         return true;
     }
@@ -252,5 +361,38 @@ class Experiment
         $responses->dropCollection($db);
 
         return true;
+    }
+
+    /**
+    * Return experiment as array
+    */
+    public function toArray() {
+        return array(
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'body' => $this->getBody(),
+            'input' => $this->getInput(),
+            'error' => $this->getError(),
+            'random' => $this->getRandom(),
+            'created' => $this->getCreated(),
+            'meta' => (int) $this->getMeta(),
+            'rules' => $this->getRules(),
+        );
+    }
+
+    public function toMongo() {
+        //Get object as array
+        $mongoDoc = $this->toArray();
+        unset($mongoDoc['id']);
+        //Replace primitive types with MongoObjects where appropiate
+        if($this->id)
+        {
+            $mongoDoc['_id'] = new \MongoId($this->id);
+        }
+
+        $mongoDoc['expId'] = new \MongoId($this->getExpId());
+        $mongoDoc['created'] = new \MongoDate($this->getCreated());
+
+        return $mongoDoc;
     }
 }

@@ -23,11 +23,14 @@ class Experiments
         $experiments = array();
         foreach ($cursor as $doc) {
             $experiment = new \Response\Experiment();
+
             $experiment->setId((string) $doc['_id']);
             $experiment->setTitle($doc['title']);
             $experiment->setBody($doc['body']);
             $experiment->setInput($doc['input']);
+            $experiment->setError($doc['error']);
             $experiment->setRandom($doc['random']);
+            $experiment->setCreated($doc['created']->sec);
 
             $experiments[] = $experiment;
         }

@@ -5,10 +5,11 @@ $config = require '../config/global.php';
 $db = new \Response\Database($config['Mongo']['uri']);
 $app = new \Slim\Slim($config['Slim']);
 $app->add(new \Middleware\Auth());
-$app->view(new \JsonApiView());
+$app->view(new \View\Json());
 $app->add(new \JsonApiMiddleware());
+$app->add(new \Slim\Middleware\ContentTypes());
 
-$app->get('/', function () {
+$app->get('/', function () use ($app) {
     $app->render(200,array('message' => "Timed response experiment **ONLINE**"));
 });
 
@@ -17,10 +18,15 @@ $app->get('/', function () {
 * Experiment routes
 */
 
+
+$app->options('/experiment', function () use ($app) {
+    $app->render(200);
+});
+
 $app->post('/experiment', function () use ($app,$db) {
 
     $request = $app->request();
-    $params = $request->params();
+    $params = $request->getBody();
 
     $experiment = new \Response\Experiment();
 
@@ -30,7 +36,16 @@ $app->post('/experiment', function () use ($app,$db) {
         $experiment->setTitle($params['title']);
         $experiment->setBody($params['body']);
         $experiment->setInput($params['input']);
+        $experiment->setError($params['error']);
         $experiment->setRandom($params['random']);
+
+        $rules = array();
+        foreach ($params['rules'] as $rule) {
+            $ruleClass = '\Rule\\' . $rule['type'] . 'Rule';
+            $rules[] = new $ruleClass($rule);
+        }
+
+        $experiment->setRules($rules);
 
         $experiment->save($db);
 
@@ -53,17 +68,18 @@ $app->get('/experiment',  function () use ($app,$db) {
 
     $data = array();
     foreach ($e as $experiment) {
-        $data[] = array(
-            'id' => $experiment->getId(),
-            'title' => $experiment->getTitle(),
-            'body' => $experiment->getBody(),
-            'input' => $experiment->getInput(),
-            'random' => $experiment->getRandom()
-        );
+        $data[] = $experiment->toArray();
     }
 
     $app->render(200,array('data' => $data));
 });
+
+
+
+$app->options('/experiment/:expId', function () use ($app) {
+    $app->render(200);
+});
+
 
 $app->get('/experiment/:expId',  function ($expId) use ($app,$db) {
 
@@ -71,13 +87,7 @@ $app->get('/experiment/:expId',  function ($expId) use ($app,$db) {
 
     $experiment->load($expId,$db);
 
-    $data = array(
-        'id' => $experiment->getId(),
-        'title' => $experiment->getTitle(),
-        'body' => $experiment->getBody(),
-        'input' => $experiment->getInput(),
-        'random' => $experiment->getRandom()
-    );
+    $data = $experiment->toArray();
 
     $app->render(200,array('data' => $data));
 });
@@ -86,7 +96,7 @@ $app->get('/experiment/:expId',  function ($expId) use ($app,$db) {
 $app->put('/experiment/:expId',  function ($expId) use ($app,$db) {
 
     $request = $app->request();
-    $params = $request->params();
+    $params = $request->getBody();
 
     $experiment = new \Response\Experiment();
 
@@ -98,7 +108,9 @@ $app->put('/experiment/:expId',  function ($expId) use ($app,$db) {
         $experiment->setTitle($params['title']);
         $experiment->setBody($params['body']);
         $experiment->setInput($params['input']);
+        $experiment->setError($params['error']);
         $experiment->setRandom($params['random']);
+        $experiment->setMeta($params['meta']);
 
         $experiment->save($db);
 
@@ -125,23 +137,37 @@ $app->delete('/experiment/:expId',  function ($expId) use ($app,$db) {
 /****
 * Response routes
 */
+$app->options('/experiment/:expId/response', function () use ($app) {
+    $app->render(200);
+});
+
+$app->options('/experiment/:expId/response/batch', function () use ($app) {
+    $app->render(200);
+});
+
+
 
 $app->post('/experiment/:expId/response', function ($expId) use ($app,$db) {
-
     $request = $app->request();
-    $params = $request->params();
+    $params = $request->getBody();
 
-    $response = new \Response\Response();
+    $response = new \Response\Response($expId);
 
     $valid = $response->validate($params);
 
     if ($valid === true) {
-        $response->setInput($params['input']);
-        $response->setExpId(new MoongoId($expId));
+        $response->setExpId($expId);
         $response->setParticipantId($params['participantId']);
+        $response->setSessionId($params['sessionId']);
         $response->setInput($params['input']);
         $response->setSlide($params['slide']);
         $response->setTime($params['time']);
+        $response->setError($params['error']);
+        $response->setParticipantSlide($params['participantSlide']);
+
+        if(isset($params['meta'])) {
+            $response->setMeta($params['meta']);
+        }
 
         $response->save($db);
 
@@ -152,25 +178,70 @@ $app->post('/experiment/:expId/response', function ($expId) use ($app,$db) {
         $errors = $valid->errors();
         $app->render(400,array('error' => true,'errors' => $errors));
     }
+});
+
+$app->post('/experiment/:expId/response/batch', function ($expId) use ($app,$db) {
+    $request = $app->request();
+    $params = $request->getBody();
+
+    $responsesData = array();
+    foreach ($params as $key => $value) {
+        $response = new \Response\Response($expId);
+        $valid = $response->validate($value);
+        if ($valid === true) {
+            $response->setExpId($expId);
+            $response->setParticipantId($value['participantId']);
+            $response->setSessionId($value['sessionId']);
+            $response->setInput($value['input']);
+            $response->setSlide($value['slide']);
+            $response->setParticipantSlide($value['participantSlide']);
+            $response->setTime($value['time']);
+            $response->setCreated(strtotime('now'));
+            $response->setError($value['error']);
+
+            if(isset($value['meta'])) {
+                $response->setMeta($value['meta']);
+            }
+
+            //Save new response object to array, format as Mongo Object ready for insert
+            $responsesData[] = $response->toMongo();
+        }
+        else {
+            $errors = $valid->errors();
+            $app->render(400,array('error' => true,'errors' => $errors));
+        }
+    }
+
+    $responses = new \Response\Responses($expId);
+    $responses->save($responsesData,$db);
+
+    $app->render(200);
 
 });
 
 
 $app->get('/experiment/:expId/response',  function ($expId) use ($app,$db) {
 
-    $responses = new \Response\Response();
+    $responses = new \Response\Responses($expId);
 
     $r = $responses->load($db);
 
     $data = array();
     foreach ($r as $response) {
-        $data[] = array(
-            'id' => $response->getId(),
-            'input' => $response->getInput(),
-        );
+        $data[] = $response->toArray();
     }
 
-    $app->render(200,array('data' => $response));
+    $app->render(200,array('data' => $data));
+});
+
+
+$app->delete('/experiment/:expId/response',  function ($expId) use ($app,$db) {
+
+    $responses = new \Response\Responses($expId);
+
+    $responses->delete($db);
+
+    $app->render(200);
 });
 
 

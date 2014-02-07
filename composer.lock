@@ -3,7 +3,7 @@
         "This file locks the dependencies of your project to a known state",
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file"
     ],
-    "hash": "e503fa1dd896c6c1e51feff901db0592",
+    "hash": "b4dd19918c2f7c47ec9cf5d8b4947655",
     "packages": [
         {
             "name": "aspose/php",
