@@ -50,12 +50,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/entomb/slim-json-api.git",
-                "reference": "b92554ecf2bcd7bf65c711052af8133c2f21ffe0"
+                "reference": "97b88252f8fec8dbdd29f090b7a882a90e954a84"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/entomb/slim-json-api/zipball/b92554ecf2bcd7bf65c711052af8133c2f21ffe0",
-                "reference": "b92554ecf2bcd7bf65c711052af8133c2f21ffe0",
+                "url": "https://api.github.com/repos/entomb/slim-json-api/zipball/97b88252f8fec8dbdd29f090b7a882a90e954a84",
+                "reference": "97b88252f8fec8dbdd29f090b7a882a90e954a84",
                 "shasum": ""
             },
             "require": {
@@ -88,20 +88,20 @@
                 "slim",
                 "view"
             ],
-            "time": "2013-12-11 15:00:12"
+            "time": "2014-03-15 16:09:10"
         },
         {
             "name": "slim/slim",
-            "version": "2.4.0",
+            "version": "2.4.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/codeguy/Slim.git",
-                "reference": "ff7d7148848fa4f45712984d7b91ac3cbced586b"
+                "reference": "3a2ac723f17b5d81607287ff28575d38b9fbc70e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/codeguy/Slim/zipball/ff7d7148848fa4f45712984d7b91ac3cbced586b",
-                "reference": "ff7d7148848fa4f45712984d7b91ac3cbced586b",
+                "url": "https://api.github.com/repos/codeguy/Slim/zipball/3a2ac723f17b5d81607287ff28575d38b9fbc70e",
+                "reference": "3a2ac723f17b5d81607287ff28575d38b9fbc70e",
                 "shasum": ""
             },
             "require": {
@@ -134,7 +134,7 @@
                 "rest",
                 "router"
             ],
-            "time": "2013-11-29 20:33:36"
+            "time": "2014-02-16 18:18:25"
         },
         {
             "name": "vlucas/valitron",

@@ -41,10 +41,8 @@ class Responses
             $response->setSessionId($doc['sessionId']);
             $response->setInput($doc['input']);
             $response->setSlide($doc['slide']);
-            $response->setParticipantSlide($doc['participantSlide']);
             $response->setTime($doc['time']);
             $response->setCreated($doc['created']->sec);
-            $response->setError($doc['error']);
             $response->setMeta($doc['meta']);
 
             $responses[] = $response;
@@ -59,7 +57,7 @@ class Responses
     * @param  Database $db
     */
     public function save(array $docs,Database $db) {
-        //Save new experiment
+        //Save new responses
         $db->batchInsert($this->collection,$docs);
         return true;
     }

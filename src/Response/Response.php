@@ -27,11 +27,6 @@ class Response
      */
     protected $slide;
 
-     /**
-     * @var int
-     */
-    protected $participantSlide;
-
     /**
      * @var string
      */
@@ -48,14 +43,14 @@ class Response
     protected $created;
 
     /**
+    * @var float
+    */
+    protected $time;
+
+    /**
      * @var string
      */
     protected $collection;
-
-    /**
-     * @var bool
-     */
-    protected $error;
 
     /**
      * @var mixed
@@ -180,24 +175,6 @@ class Response
     }
 
     /**
-     * Get the slide number the participant is actually seeing will == slide if not randomised
-     * @return int
-     */
-    public function getParticipantSlide()
-    {
-        return $this->participantSlide;
-    }
-
-    /**
-     * Set experiment slide
-     * @param  string $input
-     */
-    public function setParticipantSlide($slide)
-    {
-        $this->participantSlide = $slide;
-    }
-
-    /**
      * Get response time
      * @return float
      */
@@ -234,24 +211,6 @@ class Response
     }
 
      /**
-     * Get if input response was an error
-     * @return error
-     */
-    public function getError()
-    {
-        return $this->error;
-    }
-
-    /**
-     * Set if input response was an error
-     * @param  bool error
-     */
-    public function setError($error)
-    {
-        $this->error = $error;
-    }
-
-     /**
      * Get meta data
      * @return meta
      */
@@ -277,7 +236,7 @@ class Response
     {
         $v = new \Valitron\Validator($params);
         //expId already guaranteed by routing and _construct
-        $v->rule('required', ['participantId','sessionId','input','slide','time','error']);
+        $v->rule('required', ['participantId','sessionId','input','slide','time']);
         $v->rule('integer', ['slide']);
 
         if($v->validate()) {
@@ -317,10 +276,8 @@ class Response
         $this->setSessionId($doc['sessionId']);
         $this->setInput($doc['input']);
         $this->setSlide((int) $doc['slide']);
-        $this->setParticipantSlide((int) $doc['participantSlide']);
         $this->setTime((float) $doc['time']);
         $this->setCreated($doc['created']->sec);
-        $this->setError((bool) $doc['error']);
         $this->setMeta($doc['meta']);
 
         return true;
@@ -337,10 +294,8 @@ class Response
             'sessionId' => $this->getSessionId(),
             'input' => $this->getInput(),
             'slide' => (int) $this->getSlide(),
-            'participantSlide' => (int) $this->getParticipantSlide(),
             'time' => (float) $this->getTime(),
             'created' => $this->getCreated(),
-            'error' => (bool) $this->getError(),
             'meta' => $this->getMeta(),
         );
     }

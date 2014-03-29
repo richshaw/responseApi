@@ -26,32 +26,21 @@ $app->options('/experiment', function () use ($app) {
 $app->post('/experiment', function () use ($app,$db) {
 
     $request = $app->request();
-    $params = $request->getBody();
+
+    $params = (array) $request->getBody();
 
     $experiment = new \Response\Experiment();
 
     $valid = $experiment->validate($params);
 
     if ($valid === true) {
-        $experiment->setTitle($params['title']);
-        $experiment->setBody($params['body']);
-        $experiment->setInput($params['input']);
-        $experiment->setError($params['error']);
-        $experiment->setRandom($params['random']);
-
-        $rules = array();
-        foreach ($params['rules'] as $rule) {
-            $ruleClass = '\Rule\\' . $rule['type'] . 'Rule';
-            $rules[] = new $ruleClass($rule);
-        }
-
-        $experiment->setRules($rules);
+        $experiment->setMeta($params['meta']);
 
         $experiment->save($db);
 
-        $data = $experiment->getId();
+        $id = $experiment->getId();
 
-        $app->render(200,array('data' => $data));
+        $app->render(200,array('data' => array('id' => $id )));
     }
     else {
         $errors = $valid->errors();
@@ -96,7 +85,7 @@ $app->get('/experiment/:expId',  function ($expId) use ($app,$db) {
 $app->put('/experiment/:expId',  function ($expId) use ($app,$db) {
 
     $request = $app->request();
-    $params = $request->getBody();
+    $params = (array) $request->getBody();
 
     $experiment = new \Response\Experiment();
 
@@ -105,11 +94,6 @@ $app->put('/experiment/:expId',  function ($expId) use ($app,$db) {
     if ($valid === true) {
         $experiment->setId($expId);
 
-        $experiment->setTitle($params['title']);
-        $experiment->setBody($params['body']);
-        $experiment->setInput($params['input']);
-        $experiment->setError($params['error']);
-        $experiment->setRandom($params['random']);
         $experiment->setMeta($params['meta']);
 
         $experiment->save($db);
@@ -137,6 +121,7 @@ $app->delete('/experiment/:expId',  function ($expId) use ($app,$db) {
 /****
 * Response routes
 */
+
 $app->options('/experiment/:expId/response', function () use ($app) {
     $app->render(200);
 });
@@ -144,8 +129,6 @@ $app->options('/experiment/:expId/response', function () use ($app) {
 $app->options('/experiment/:expId/response/batch', function () use ($app) {
     $app->render(200);
 });
-
-
 
 $app->post('/experiment/:expId/response', function ($expId) use ($app,$db) {
     $request = $app->request();
@@ -162,8 +145,6 @@ $app->post('/experiment/:expId/response', function ($expId) use ($app,$db) {
         $response->setInput($params['input']);
         $response->setSlide($params['slide']);
         $response->setTime($params['time']);
-        $response->setError($params['error']);
-        $response->setParticipantSlide($params['participantSlide']);
 
         if(isset($params['meta'])) {
             $response->setMeta($params['meta']);
@@ -194,10 +175,8 @@ $app->post('/experiment/:expId/response/batch', function ($expId) use ($app,$db)
             $response->setSessionId($value['sessionId']);
             $response->setInput($value['input']);
             $response->setSlide($value['slide']);
-            $response->setParticipantSlide($value['participantSlide']);
             $response->setTime($value['time']);
             $response->setCreated(strtotime('now'));
-            $response->setError($value['error']);
 
             if(isset($value['meta'])) {
                 $response->setMeta($value['meta']);
