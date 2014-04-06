@@ -26,7 +26,7 @@ class Database
         if ($this->db === null)
         {
             try {
-                $m = new \MongoClient($mongoUri);
+                $m = new \MongoClient($mongoUri); ////////TOD HANDLE ERROR BETTER [30-Mar-2014 00:58:14 UTC] PHP Fatal error:  Uncaught exception 'MongoConnectionException' with message 'Failed to connect to: paulo.mongohq.com:10014: Remote server has closed the connection' in /srv/data/web/vhosts/timedresponse.io/src/Response/Database.php:29 https://jira.mongodb.org/browse/PHP-854
             } catch ( MongoConnectionException $e ) {
                 die('Error connecting to MongoDB server');
             } catch ( MongoException $e ) {

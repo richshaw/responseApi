@@ -54,6 +54,11 @@ class Json extends \JsonApiView  {
 
         $app->response()->header('Access-Control-Max-Age', '86400');
 
+        //Disables Gandi hostings Varnish cache https://wiki.gandi.net/en/simple/cache
+        if($app->request->getMethod() != 'GET') {
+            $app->response()->header('Cache-Control', 'max-age=1');
+        }
+
         $app->response()->body($json_response);
 
         $app->stop();
