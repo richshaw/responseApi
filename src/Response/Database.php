@@ -21,26 +21,30 @@ class Database
     }
 
 
-    public function connect($mongoUri)
+    public function connect($mongoUri, $retry = 3)
     {
-        if ($this->db === null)
-        {
-            try {
-                $m = new \MongoClient($mongoUri); ////////TOD HANDLE ERROR BETTER [30-Mar-2014 00:58:14 UTC] PHP Fatal error:  Uncaught exception 'MongoConnectionException' with message 'Failed to connect to: paulo.mongohq.com:10014: Remote server has closed the connection' in /srv/data/web/vhosts/timedresponse.io/src/Response/Database.php:29 https://jira.mongodb.org/browse/PHP-854
-            } catch ( MongoConnectionException $e ) {
-                die('Error connecting to MongoDB server');
-            } catch ( MongoException $e ) {
-                die('Mongo Error: ' . $e->getMessage());
-            } catch ( Exception $e ) {
-                die('Error: ' . $e->getMessage());
-            }
-
+        try {
+            $m = new \MongoClient($mongoUri); ////////TOD HANDLE ERROR BETTER [30-Mar-2014 00:58:14 UTC] PHP Fatal error:  Uncaught exception 'MongoConnectionException' with message 'Failed to connect to: paulo.mongohq.com:10014: Remote server has closed the connection' in /srv/data/web/vhosts/timedresponse.io/src/Response/Database.php:29 https://jira.mongodb.org/browse/PHP-854
             $url = parse_url($mongoUri);
             $dbName = preg_replace('/\/(.*)/', '$1', $url['path']);
             $this->db = $m->selectDB($dbName);
+            return $this->db;
+        } catch ( MongoConnectionException $e ) {
+            //TODO Log exception
+            //die('Error connecting to MongoDB server');
+        } catch ( MongoException $e ) {
+            die('Mongo Error: ' . $e->getMessage());
+        } catch ( Exception $e ) {
+            die('Error: ' . $e->getMessage());
         }
 
-        return $this->db;
+        //Automatically retry connection on fail
+        if ($retry > 0) {
+            return getMongoClient($seeds, $options, --$retry);
+        }
+
+        //The connection is definately fucked
+        die('Error connecting to MongoDB server');
     }
 
     public function disconnect()
